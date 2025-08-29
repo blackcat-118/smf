@@ -189,7 +189,9 @@ func (p *Processor) requestAMFToReleasePDUResources(
 		PduSessionId: smContext.PDUSessionID,
 		SkipInd:      true,
 	}
-	cause := nasMessage.Cause5GSMNetworkFailure
+	// because SMF only initiated PDU Session Release procedure when current UPF is not reachable,
+	// we ask UE to re-establish a new PDU session with other UPF
+	cause := nasMessage.Cause5GSMReactivationRequested
 	if buf, err := smf_context.BuildGSMPDUSessionReleaseCommand(smContext, cause, false); err != nil {
 		logger.MainLog.Errorf("Build GSM PDUSessionReleaseCommand failed: %+v", err)
 	} else {
