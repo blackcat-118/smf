@@ -55,9 +55,13 @@ func HandlePfcpAssociationReleaseRequest(msg *pfcpUdp.Message) {
 
 	var cause pfcpType.Cause
 	upf := smf_context.RetrieveUPFNodeByNodeID(*pfcpMsg.NodeID)
-
+	logger.PfcpLog.Infof("Handle PFCP Association Release Request with NodeID[%s]",
+		pfcpMsg.NodeID.ResolveNodeIdToIp().String())
 	if upf != nil {
 		smf_context.RemoveUPFNodeByNodeID(*pfcpMsg.NodeID)
+		// Avoiding removed upf to be selected by new PDU session
+		upf.CancelAssociation()
+		service.GetApp().Processor().ReleaseAllResourcesOfUPF(upf)
 		cause.CauseValue = pfcpType.CauseRequestAccepted
 	} else {
 		cause.CauseValue = pfcpType.CauseNoEstablishedPfcpAssociation
