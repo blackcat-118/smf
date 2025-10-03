@@ -200,7 +200,8 @@ func HandlePfcpSessionReportRequest(msg *pfcpUdp.Message) {
 		// After receiving the Usage Report, it should send charging request to the CHF
 		// and update the URR with the quota or other charging information according to
 		// the charging response
-		service.GetApp().Processor().ReportUsageAndUpdateQuota(smContext)
+		// temporarily turn it off due to the incomplete CHF service implementation
+		// service.GetApp().Processor().ReportUsageAndUpdateQuota(smContext)
 	}
 
 	// TS 23.502 4.2.3.3 2b. Send Data Notification Ack, SMF->UPF

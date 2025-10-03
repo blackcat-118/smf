@@ -207,7 +207,7 @@ func (p *Processor) HandlePDUSessionSMContextCreate(
 	if err = p.Consumer().CHFSelection(smContext); err != nil {
 		logger.PduSessLog.Errorln("chf selection error:", err)
 	} else {
-		p.CreateChargingSession(smContext)
+		// p.CreateChargingSession(smContext)
 	}
 
 	// Update SessionRule from decision
@@ -910,7 +910,7 @@ func (p *Processor) HandlePDUSessionSMContextUpdate(
 			c.JSON(http.StatusForbidden, updateSmContextError)
 
 		case smf_context.SessionReleaseSuccess:
-			p.ReleaseChargingSession(smContext)
+			// p.ReleaseChargingSession(smContext)
 
 			smContext.Log.Traceln("In case SessionReleaseSuccess")
 			smContext.SetState(smf_context.InActivePending)
@@ -1029,7 +1029,7 @@ func (p *Processor) HandlePDUSessionSMContextRelease(
 
 	switch pfcpResponseStatus {
 	case smf_context.SessionReleaseSuccess:
-		p.ReleaseChargingSession(smContext)
+		// p.ReleaseChargingSession(smContext)
 
 		smContext.Log.Traceln("In case SessionReleaseSuccess")
 		smContext.SetState(smf_context.InActive)
@@ -1128,7 +1128,7 @@ func (p *Processor) HandlePDUSessionSMContextLocalRelease(
 
 	switch pfcpResponseStatus {
 	case smf_context.SessionReleaseSuccess:
-		p.ReleaseChargingSession(smContext)
+		// p.ReleaseChargingSession(smContext)
 
 		logger.CtxLog.Traceln("In case SessionReleaseSuccess")
 		smContext.SetState(smf_context.InActivePending)
