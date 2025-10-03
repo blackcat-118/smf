@@ -34,12 +34,31 @@ func (p *Processor) ToBeAssociatedWithUPF(smfPfcpContext context.Context, upf *s
 			if smf_context.GetSelf().PfcpHeartbeatInterval == 0 {
 				return
 			}
+			upi := smf_context.GetUserPlaneInformation()
+			for upfStr, upf := range upi.UPFs {
+				// check whether upf is associated
+				if err := upf.UPF.IsAssociated(); err == nil {
+					// if true, release half pdu sessions from this upf
+					p.releaseHalfResourcesOfUPF(upf.UPF, upfStr)
+				}
+			}
+
 			keepHeartbeatTo(upf, upfStr)
 			// returns when UPF heartbeat loss is detected or association is canceled
 
 			p.releaseAllResourcesOfUPF(upf, upfStr)
 		}
 	}
+}
+
+func (p *Processor) ReleaseHalfResourcesOfUPF(upf *smf_context.UPF) {
+	var upfStr string
+	if upf.NodeID.NodeIdType == pfcpType.NodeIdTypeFqdn {
+		upfStr = fmt.Sprintf("[%s](%s)", upf.NodeID.FQDN, upf.NodeID.ResolveNodeIdToIp().String())
+	} else {
+		upfStr = fmt.Sprintf("[%s]", upf.NodeID.ResolveNodeIdToIp().String())
+	}
+	p.releaseHalfResourcesOfUPF(upf, upfStr)
 }
 
 func (p *Processor) ReleaseAllResourcesOfUPF(upf *smf_context.UPF) {
@@ -101,6 +120,7 @@ func setupPfcpAssociation(upf *smf_context.UPF, upfStr string) error {
 	if nodeID == nil {
 		return fmt.Errorf("pfcp association needs NodeID")
 	}
+	// release some pdusession from existing upf
 
 	logger.MainLog.Infof("Received PFCP Association Setup Accepted Response from UPF%s", upfStr)
 	logger.MainLog.Infof("UPF(%s) setup association", upf.NodeID.ResolveNodeIdToIp().String())
@@ -158,6 +178,26 @@ func doPfcpHeartbeat(upf *smf_context.UPF, upfStr string) error {
 		return fmt.Errorf("received PFCP Heartbeat Response RecoveryTimeStamp has been updated")
 	}
 	return nil
+}
+
+func (p *Processor) releaseHalfResourcesOfUPF(upf *smf_context.UPF, upfStr string) {
+	logger.MainLog.Infof("Release half resources of UPF %s", upfStr)
+
+	upf.ProcSomeSMContext(func(smContext *smf_context.SMContext) {
+		smContext.SMLock.Lock()
+		defer smContext.SMLock.Unlock()
+		switch smContext.State() {
+		case smf_context.Active, smf_context.ModificationPending, smf_context.PFCPModification:
+			needToSendNotify, removeContext := p.requestAMFToReleasePDUResources(smContext)
+			if needToSendNotify {
+				p.SendReleaseNotification(smContext)
+			}
+			if removeContext {
+				// Notification has already been sent, if it is needed
+				p.RemoveSMContextFromAllNF(smContext, false)
+			}
+		}
+	})
 }
 
 func (p *Processor) releaseAllResourcesOfUPF(upf *smf_context.UPF, upfStr string) {

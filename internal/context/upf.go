@@ -597,6 +597,21 @@ func (upf *UPF) ProcEachSMContext(procFunc func(*SMContext)) {
 	})
 }
 
+func (upf *UPF) ProcSomeSMContext(procFunc func(*SMContext)) {
+	count := 0
+	smContextPool.Range(func(key, value interface{}) bool {
+		if count > int(smContextCount/2) {
+			return false
+		}
+		smContext := value.(*SMContext)
+		if smContext.SelectedUPF != nil && smContext.SelectedUPF.UPF == upf {
+			procFunc(smContext)
+		}
+		count++
+		return true
+	})
+}
+
 func (upf *UPF) IsAssociated() error {
 	select {
 	case <-upf.AssociationContext.Done():
