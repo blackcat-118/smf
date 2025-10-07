@@ -846,6 +846,15 @@ func (upi *UserPlaneInformation) sortUPFListByName(upfList []*UPNode) []*UPNode 
 	return sortedUpList
 }
 
+func (upi *UserPlaneInformation) sortUPFListByNumOfUE(upfList []*UPNode) []*UPNode {
+
+	sort.Slice(upfList, func(i, j int) bool {
+		return len(upfList[i].UPF.GetUEIDList()) < len(upfList[j].UPF.GetUEIDList())
+	})
+
+	return upfList
+}
+
 func (upi *UserPlaneInformation) selectUPPathSource() (*UPNode, error) {
 	// if multiple gNBs exist, select one according to some criterion
 	for _, node := range upi.AccessNetwork {
@@ -870,8 +879,13 @@ func (upi *UserPlaneInformation) SelectUPFAndAllocUEIP(selection *UPFSelectionPa
 			selection.SNssai.Sst, selection.SNssai.Sd, selection.Dnai)
 		return nil, nil, false
 	}
-	UPFList = upi.sortUPFListByName(UPFList)
-	sortedUPFList := createUPFListForSelection(UPFList)
+
+	sortedUPFList := upi.sortUPFListByNumOfUE(UPFList)
+	for upf := range sortedUPFList {
+		logger.CtxLog.Debugf("UPF: %s, NumOfUE: %d", upi.GetUPFNameByIp(sortedUPFList[upf].NodeID.ResolveNodeIdToIp().String()), len(sortedUPFList[upf].UPF.GetUEIDList()))
+	}
+	// Do not random UPF list selection, because we have sorted the UPF list by number of UEs
+	// sortedUPFList := createUPFListForSelection(UPFList)
 	for _, upf := range sortedUPFList {
 		logger.CtxLog.Debugf("check start UPF: %s",
 			upi.GetUPFNameByIp(upf.NodeID.ResolveNodeIdToIp().String()))
