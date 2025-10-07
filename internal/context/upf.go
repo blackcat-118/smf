@@ -72,6 +72,7 @@ type UPF struct {
 
 	AssociationContext context.Context
 	CancelAssociation  context.CancelFunc
+	UEIDList           []string
 
 	SNssaiInfos  []*SnssaiUPFInfo
 	N3Interfaces []*UPFInterfaceInfo
@@ -600,7 +601,7 @@ func (upf *UPF) ProcEachSMContext(procFunc func(*SMContext)) {
 func (upf *UPF) ProcSomeSMContext(procFunc func(*SMContext)) {
 	count := 0
 	smContextPool.Range(func(key, value interface{}) bool {
-		if count > int(smContextCount/2) {
+		if count > int(smContextCount/5) {
 			return false
 		}
 		smContext := value.(*SMContext)
@@ -610,6 +611,28 @@ func (upf *UPF) ProcSomeSMContext(procFunc func(*SMContext)) {
 		count++
 		return true
 	})
+}
+
+func (upf *UPF) GetUEIDList() []string {
+	return upf.UEIDList
+}
+
+func (upf *UPF) AddUEID(ueid string) {
+	for _, id := range upf.UEIDList {
+		if id == ueid {
+			return
+		}
+	}
+	upf.UEIDList = append(upf.UEIDList, ueid)
+}
+
+func (upf *UPF) RemoveUEID(ueid string) {
+	for i, id := range upf.UEIDList {
+		if id == ueid {
+			upf.UEIDList = append(upf.UEIDList[:i], upf.UEIDList[i+1:]...)
+			return
+		}
+	}
 }
 
 func (upf *UPF) IsAssociated() error {

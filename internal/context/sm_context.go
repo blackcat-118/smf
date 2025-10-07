@@ -573,6 +573,9 @@ func (c *SMContext) findPSAandAllocUeIP(param *UPFSelectionParams) error {
 	if c.PDUAddress == nil {
 		return fmt.Errorf("fail to allocate PDU address, Selection Parameter: %s",
 			param.String())
+	} else {
+		c.SelectedUPF.UPF.AddUEID(c.Supi)
+		c.Log.Tracef("UE [%s] allocated to UPF[%s]", c.Supi, c.SelectedUPF.Name)
 	}
 	return nil
 }

@@ -197,6 +197,7 @@ func (p *Processor) releaseHalfResourcesOfUPF(upf *smf_context.UPF, upfStr strin
 				p.RemoveSMContextFromAllNF(smContext, false)
 			}
 		}
+		upf.RemoveUEID(smContext.Supi)
 	})
 }
 
@@ -217,6 +218,7 @@ func (p *Processor) releaseAllResourcesOfUPF(upf *smf_context.UPF, upfStr string
 				p.RemoveSMContextFromAllNF(smContext, false)
 			}
 		}
+		upf.RemoveUEID(smContext.Supi)
 	})
 }
 
