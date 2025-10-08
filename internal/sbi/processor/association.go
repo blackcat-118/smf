@@ -34,14 +34,25 @@ func (p *Processor) ToBeAssociatedWithUPF(smfPfcpContext context.Context, upf *s
 			if smf_context.GetSelf().PfcpHeartbeatInterval == 0 {
 				return
 			}
+
+			var maxSessionUPFstr string
+			numOfActiveUPFs := uint64(0)
+			maxSession := -1
+
 			upi := smf_context.GetUserPlaneInformation()
+
 			for upfStr, upf := range upi.UPFs {
 				// check whether upf is associated
 				if err := upf.UPF.IsAssociated(); err == nil {
-					// if true, release half pdu sessions from this upf
-					p.releaseHalfResourcesOfUPF(upf.UPF, upfStr)
+					numOfActiveUPFs++
+					if n := len(upf.UPF.GetUEIDList()); n > maxSession {
+						maxSession = n
+						maxSessionUPFstr = upfStr
+					}
 				}
 			}
+			// if true, release half pdu sessions from this upf
+			p.releaseSomeResourcesOfUPF(upi.UPFs[maxSessionUPFstr].UPF, maxSessionUPFstr, numOfActiveUPFs)
 
 			keepHeartbeatTo(upf, upfStr)
 			// returns when UPF heartbeat loss is detected or association is canceled
@@ -51,15 +62,15 @@ func (p *Processor) ToBeAssociatedWithUPF(smfPfcpContext context.Context, upf *s
 	}
 }
 
-func (p *Processor) ReleaseHalfResourcesOfUPF(upf *smf_context.UPF) {
-	var upfStr string
-	if upf.NodeID.NodeIdType == pfcpType.NodeIdTypeFqdn {
-		upfStr = fmt.Sprintf("[%s](%s)", upf.NodeID.FQDN, upf.NodeID.ResolveNodeIdToIp().String())
-	} else {
-		upfStr = fmt.Sprintf("[%s]", upf.NodeID.ResolveNodeIdToIp().String())
-	}
-	p.releaseHalfResourcesOfUPF(upf, upfStr)
-}
+// func (p *Processor) ReleaseSomeResourcesOfUPF(upf *smf_context.UPF) {
+// 	var upfStr string
+// 	if upf.NodeID.NodeIdType == pfcpType.NodeIdTypeFqdn {
+// 		upfStr = fmt.Sprintf("[%s](%s)", upf.NodeID.FQDN, upf.NodeID.ResolveNodeIdToIp().String())
+// 	} else {
+// 		upfStr = fmt.Sprintf("[%s]", upf.NodeID.ResolveNodeIdToIp().String())
+// 	}
+// 	p.releaseSomeResourcesOfUPF(upf, upfStr)
+// }
 
 func (p *Processor) ReleaseAllResourcesOfUPF(upf *smf_context.UPF) {
 	var upfStr string
@@ -180,8 +191,8 @@ func doPfcpHeartbeat(upf *smf_context.UPF, upfStr string) error {
 	return nil
 }
 
-func (p *Processor) releaseHalfResourcesOfUPF(upf *smf_context.UPF, upfStr string) {
-	logger.MainLog.Infof("Release half resources of UPF %s", upfStr)
+func (p *Processor) releaseSomeResourcesOfUPF(upf *smf_context.UPF, upfStr string, numOfActiveUPF uint64) {
+	logger.MainLog.Infof("Release some resources of UPF %s", upfStr)
 
 	upf.ProcSomeSMContext(func(smContext *smf_context.SMContext) {
 		smContext.SMLock.Lock()
@@ -198,7 +209,7 @@ func (p *Processor) releaseHalfResourcesOfUPF(upf *smf_context.UPF, upfStr strin
 			}
 		}
 		upf.RemoveUEID(smContext.Supi)
-	})
+	}, numOfActiveUPF)
 }
 
 func (p *Processor) releaseAllResourcesOfUPF(upf *smf_context.UPF, upfStr string) {

@@ -598,17 +598,17 @@ func (upf *UPF) ProcEachSMContext(procFunc func(*SMContext)) {
 	})
 }
 
-func (upf *UPF) ProcSomeSMContext(procFunc func(*SMContext)) {
-	count := 0
+func (upf *UPF) ProcSomeSMContext(procFunc func(*SMContext), numOfActiveUPF uint64) {
+	count := smContextCount / numOfActiveUPF
 	smContextPool.Range(func(key, value interface{}) bool {
-		if count > int(smContextCount/5) {
+		if count <= 0 {
 			return false
 		}
 		smContext := value.(*SMContext)
 		if smContext.SelectedUPF != nil && smContext.SelectedUPF.UPF == upf {
 			procFunc(smContext)
 		}
-		count++
+		count--
 		return true
 	})
 }
