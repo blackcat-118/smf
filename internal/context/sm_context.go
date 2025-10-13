@@ -86,6 +86,10 @@ func GetSMContextCount() uint64 {
 	return atomic.AddUint64(&smContextCount, 1)
 }
 
+func RemoveSMContextCount() uint64 {
+	return atomic.AddUint64(&smContextCount, ^uint64(0))
+}
+
 type EventExposureNotification struct {
 	*models.NsmfEventExposureNotification
 
@@ -418,6 +422,7 @@ func RemoveSMContext(ref string) {
 	smContext.NrdcIndicator = false
 
 	smContextPool.Delete(ref)
+	RemoveSMContextCount()
 	canonicalRef.Delete(canonicalName(smContext.Supi, smContext.PDUSessionID))
 	smContext.Log.Infof("smContext[%s] is deleted from pool", ref)
 }
